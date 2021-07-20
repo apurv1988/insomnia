@@ -461,15 +461,9 @@ export function createWindow() {
         },
       },
       {
-        label: `${MNEMONIC_SYM}Clear a model`,
+        label: `${MNEMONIC_SYM}Clear models`,
         click: function(_menuItem, window) {
-          window?.webContents?.send('clear-model');
-        },
-      },
-      {
-        label: `Clear ${MNEMONIC_SYM}all models`,
-        click: function(_menuItem, window) {
-          window?.webContents?.send('clear-all-models');
+          window?.webContents?.send('clear-models');
         },
       },
       {

@@ -123,7 +123,7 @@ import { Response } from '../../models/response';
 import { RenderContextAndKeys } from '../../common/render';
 import { RootState } from '../redux/modules';
 import { importUri } from '../redux/modules/import';
-import { showSelectModal } from '../components/modals/select-modal';
+import { showTreeSelectModal } from '../components/modals/tree-select-modal';
 
 export type AppProps = ReturnType<typeof mapStateToProps> & ReturnType<typeof mapDispatchToProps>;
 
@@ -1351,49 +1351,26 @@ class App extends PureComponent<AppProps, State> {
     });
 
     if (isDevelopment()) {
-      ipcRenderer.on('clear-model', () => {
+      ipcRenderer.on('clear-models', () => {
         const options = models
           .types()
-          .filter(t => t !== models.settings.type) // don't clear settings
-          .map(t => ({ name: t, value: t }));
+          .map(t => ({ name: t, id: t, checked: false }));
 
-        showSelectModal({
-          title: 'Clear a model',
-          message: 'Select a model to clear; this operation cannot be undone.',
-          value: options[0].value,
+        showTreeSelectModal({
+          title: 'Clear models',
+          message: 'Select the models you want to clear.  This operation cannot be undone.',
           options,
-          onDone: async type => {
-            if (type) {
-              const bufferId = await db.bufferChanges();
-              console.log(`[developer] clearing all "${type}" entities`);
-              const allEntities = await db.all(type);
-              await db.batchModifyDocs({ remove: allEntities });
-              db.flushChanges(bufferId);
-            }
-          },
-        });
-      });
-
-      ipcRenderer.on('clear-all-models', () => {
-        showModal(AskModal, {
-          title: 'Clear all models',
-          message: 'Are you sure you want to clear all models? This operation cannot be undone.',
-          yesText: 'Yes',
-          noText: 'No',
-          onDone: async yes => {
-            if (yes) {
-              const bufferId = await db.bufferChanges();
-              const promises = models
-                .types()
-                .filter(t => t !== models.settings.type) // don't clear settings
-                .reverse().map(async type => {
-                  console.log(`[developer] clearing all "${type}" entities`);
-                  const allEntities = await db.all(type);
-                  await db.batchModifyDocs({ remove: allEntities });
-                });
-              await Promise.all(promises);
-              db.flushChanges(bufferId);
-            }
+          onDone: {
+            label: 'Done',
+            action: async (types: string[]) => {
+              Promise.all(types.map(async type => {
+                const bufferId = await db.bufferChanges();
+                console.log(`[developer] clearing all "${type}" entities`);
+                const allEntities = await db.all(type);
+                await db.batchModifyDocs({ remove: allEntities });
+                db.flushChanges(bufferId);
+              }));
+            },
           },
         });
       });
